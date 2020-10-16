@@ -19,7 +19,6 @@ class NoficationListener:
         ## K = keyspace events
         ## h = hash commands
         ## x = expired events
-        # NOTE: this only needs to be enabled once 
         self.redis_client.config_set('notify-keyspace-events', 'Khx')
         
         # subscribe to keypace notifications with the SESSIONS: prefix 
@@ -34,8 +33,9 @@ class NoficationListener:
 
             # parse and print
             channel = message['channel']
+            sessionId = channel.split(":")[-1]
             event = message['data']
-            print(f'Notfication recieved: channel={channel} || event={event}')
+            print(f'Notfication recieved: session={sessionId} --> event={event}')
         
 
 # class to create and add sessions to the redis database 
