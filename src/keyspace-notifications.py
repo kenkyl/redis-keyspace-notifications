@@ -2,38 +2,48 @@ import redis
 import threading
 import random
 import time
+import logging 
 
 redisHost = 'localhost'
 redisPort = 6379
 keyPrefix = 'SESSIONS:'
 random.seed(1)
 
+# class to listen for keyspace notifications
 class NoficationListener:
     def __init__(self, redis_client):
-        self.redis_client= redis_client        
+        self.redis_client = redis_client    
 
     def listen(self):
         # initialize keyspace notifications for hash key events and expiry 
-        # K = keyspace events; h = hash commands; x = expired events
+        ## K = keyspace events
+        ## h = hash commands
+        ## x = expired events
         # NOTE: this only needs to be enabled once 
         self.redis_client.config_set('notify-keyspace-events', 'Khx')
         
         # subscribe to keypace notifications with the SESSIONS: prefix 
         p = self.redis_client.pubsub()
-        p.psubscribe('__key*__:{keyPrefix}:*')
+        p.psubscribe(f'__key*__:{keyPrefix}:*')
 
         # infinitely listen for new messages and print output
         while True:
-            ### Grab a message from the channel(s) subscribed to (note: Python implementation specfic)
+            # Grab a message from the channel(s) subscribed to
+            # NOTE: logic would go here to increment counter 
             message = p.get_message(timeout=10.0)
-            print(f'Notfication recieved: \"{message}\"')
+
+            # parse and print
+            channel = message['channel']
+            event = message['data']
+            print(f'Notfication recieved: channel={channel} || event={event}')
         
 
 # class to create and add sessions to the redis database 
 class SessionCreator:
     def __init__(self, redis_client):
-        self.redis_client= redis_client
+        self.redis_client = redis_client
     
+    # add sessions with prefix SESSIONS: to the redis database 
     def addSessions(self):
         interval = 6
 
@@ -45,10 +55,8 @@ class SessionCreator:
             currentTime = time.time()
 
             # create session key and value
-            sessionKey = '{keyPrefix}:{sessionId}'
+            sessionKey = f'{keyPrefix}:{sessionId}'
             sessionValue = {'user':userId, 'timestamp':str(currentTime)}
-
-            print(sessionKey)
 
             # create a transaction to add session and expiration of interval * 1.5
             # NOTE: redis-py's pipline method executes a MULTI/EXEC transaction
@@ -57,8 +65,7 @@ class SessionCreator:
             p.expire(sessionKey, interval + int(interval/2))
             p.execute()
 
-            #print(self.redis_client.hgetall(sessionKey))
-
+            # wait for interval to create a new session
             time.sleep(interval)
 
 
