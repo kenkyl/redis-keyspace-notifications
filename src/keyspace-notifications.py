@@ -70,11 +70,10 @@ class SessionCreator:
 
 
 def main():
-    print('starting \'er up, cap\'n!')
+    # connect to Redis
     redis_client = redis.Redis(redisHost, redisPort, decode_responses=True)
-    redis_client.set('mykey', 'you there')
-    print(redis_client.get('mykey'))
 
+    # create class instances to create sessions and listen for notifications
     sessionCreator = SessionCreator(redis_client)
     notificationListener = NoficationListener(redis_client)
 
